@@ -2,11 +2,11 @@ function prng(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
 /* Bảng số: kích thước, độ nghiêng, vị trí khác nhau, cố định theo seed (mọi người trong phòng thấy giống nhau) */
 function findUI(el,n,seed,onTap){
   el.innerHTML='<div class="fh"><div class="tgt">Tìm số<b id="tg">1</b></div><div class="tm">⏱ Thời gian<b><span id="tm">0</span>s</b></div></div><div class="sbd" id="sbd"></div><div class="bd" id="bd"></div><div id="res"></div>';
-  const rnd=prng(seed),cols=5,rows=Math.ceil(n/cols),CH=68,cells=[...Array(cols*rows).keys()];
+  const rnd=prng(seed),cols=n<=40?5:n<=70?6:7,rows=Math.ceil(n/cols),CH=cols===5?68:60,FS=cols===5?[18,28]:cols===6?[16,22]:[16,18],cells=[...Array(cols*rows).keys()];
   for(let i=cells.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[cells[i],cells[j]]=[cells[j],cells[i]]}
   const bd=$("#bd",el);bd.style.height=rows*CH+"px";const btn={};
   for(let i=1;i<=n;i++){
-    const c=cells[i-1],cx=(c%cols+.5)/cols*100,cy=(Math.floor(c/cols)+.5)*CH,fs=18+Math.floor(rnd()*28),rot=Math.round((rnd()-.5)*120),jx=Math.round((rnd()-.5)*12),jy=Math.round((rnd()-.5)*14);
+    const c=cells[i-1],cx=(c%cols+.5)/cols*100,cy=(Math.floor(c/cols)+.5)*CH,fs=FS[0]+Math.floor(rnd()*FS[1]),rot=Math.round((rnd()-.5)*120),jx=Math.round((rnd()-.5)*12),jy=Math.round((rnd()-.5)*14);
     const b=document.createElement("button");b.className="num";b.textContent=i;
     b.style.cssText=`left:calc(${cx}% + ${jx}px);top:${cy+jy}px;font-size:${fs}px;transform:translate(-50%,-50%) rotate(${rot}deg)`;
     b.onclick=()=>onTap(i);bd.appendChild(b);btn[i]=b;
@@ -25,7 +25,7 @@ function findUI(el,n,seed,onTap){
 G.find={
   menu(){
     view(`<div class="top"><a onclick="home()">← Trò chơi</a></div><h2>🔢 Tìm số</h2>
-    <div class="card"><div class="mu">Bấm lần lượt các số từ 1 đến hết, đúng số đang hiện ở ô "Tìm số".</div><div class="row" style="margin-top:8px"><div>Số lượng số<select id="fn"><option>20</option><option selected>30</option><option>40</option></select></div><div>Cấp độ máy<select id="fl"><option value="0">Dễ</option><option value="1" selected>Vừa</option><option value="2">Khó</option></select></div></div></div>
+    <div class="card"><div class="mu">Bấm lần lượt các số từ 1 đến hết, đúng số đang hiện ở ô "Tìm số".</div><div class="row" style="margin-top:8px"><div>Số lượng số<select id="fn"><option>20</option><option selected>30</option><option>40</option><option>50</option><option>60</option><option>80</option><option>100</option></select></div><div>Cấp độ máy<select id="fl"><option value="0">Dễ</option><option value="1" selected>Vừa</option><option value="2">Khó</option></select></div></div></div>
     <button class="gc" onclick="G.find.solo(false)">🧍 Chơi một mình</button>
     <button class="gc" onclick="G.find.solo(true)">🤖 Chơi với máy<small>Dùng cấp độ đã chọn ở trên</small></button>
     <button class="gc" onclick="G.find.create('multi')">👥 Nhiều người<small>Tạo phòng, rủ bạn bằng mã hoặc tên đăng nhập · mỗi người một màu</small></button>
