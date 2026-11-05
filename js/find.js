@@ -1,25 +1,35 @@
 function prng(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
-/* Bảng số: kích thước, độ nghiêng, vị trí khác nhau, cố định theo seed (mọi người trong phòng thấy giống nhau) */
+/* Bảng số: kích thước, độ nghiêng, vị trí khác nhau. Từ 41 số trở lên, bảng tự co vừa khung màn hình (không cần cuộn) */
 function findUI(el,n,seed,onTap){
+  const fit=n>40;el.className=fit?"fit":"";
   el.innerHTML='<div class="fh"><div class="tgt">Tìm số<b id="tg">1</b></div><div class="tm">⏱ Thời gian<b><span id="tm">0</span>s</b></div></div><div class="sbd" id="sbd"></div><div class="bd" id="bd"></div><div id="res"></div>';
-  const rnd=prng(seed),cols=n<=40?5:n<=70?6:7,rows=Math.ceil(n/cols),CH=cols===5?68:60,FS=cols===5?[18,28]:cols===6?[16,22]:[16,18],cells=[...Array(cols*rows).keys()];
-  for(let i=cells.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[cells[i],cells[j]]=[cells[j],cells[i]]}
-  const bd=$("#bd",el);bd.style.height=rows*CH+"px";const btn={};
-  for(let i=1;i<=n;i++){
-    const c=cells[i-1],cx=(c%cols+.5)/cols*100,cy=(Math.floor(c/cols)+.5)*CH,fs=FS[0]+Math.floor(rnd()*FS[1]),rot=Math.round((rnd()-.5)*120),jx=Math.round((rnd()-.5)*12),jy=Math.round((rnd()-.5)*14);
-    const b=document.createElement("button");b.className="num";b.textContent=i;
-    b.style.cssText=`left:calc(${cx}% + ${jx}px);top:${cy+jy}px;font-size:${fs}px;transform:translate(-50%,-50%) rotate(${rot}deg)`;
-    b.onclick=()=>onTap(i);bd.appendChild(b);btn[i]=b;
+  const bd=$("#bd",el),tm=$("#tm",el),btn={},P=[],rr=prng(seed+7);let lastTop=0,rt;
+  for(let i=1;i<=n;i++){P[i]=[rr(),rr(),rr(),rr()];const b=document.createElement("button");b.className="num";b.textContent=i;b.onclick=()=>onTap(i);bd.appendChild(b);btn[i]=b}
+  function layout(){
+    const W=bd.clientWidth||300;let cols,rows,ch,H;lastTop=bd.getBoundingClientRect().top;
+    if(fit){H=Math.max(260,(window.visualViewport?visualViewport.height:innerHeight)-lastTop-14);cols=Math.max(4,Math.round(Math.sqrt(n*W/H)));rows=Math.ceil(n/cols);ch=H/rows}
+    else{cols=5;rows=Math.ceil(n/cols);ch=68;H=rows*ch}
+    bd.style.height=H+"px";
+    const cw=W/cols,base=Math.min(cw,ch),f0=fit?Math.max(11,base*.42):18,f1=fit?Math.max(f0+2,base*.78):46;
+    const rnd=prng(seed),cells=[...Array(cols*rows).keys()];
+    for(let i=cells.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[cells[i],cells[j]]=[cells[j],cells[i]]}
+    for(let i=1;i<=n;i++){const c=cells[i-1],p=P[i],b=btn[i].style;
+      b.left=((c%cols+.5)*cw+(p[2]-.5)*cw*.25)+"px";b.top=((Math.floor(c/cols)+.5)*ch+(p[3]-.5)*ch*.25)+"px";
+      b.fontSize=Math.round(f0+p[0]*(f1-f0))+"px";b.transform="translate(-50%,-50%) rotate("+Math.round((p[1]-.5)*120)+"deg)"}
   }
-  let cur=null;const tm=$("#tm",el);
+  const onR=()=>{clearTimeout(rt);rt=setTimeout(layout,120)};
+  window.addEventListener("resize",onR);layout();requestAnimationFrame(layout);
+  let cur=null;
   const iv=setInterval(()=>{if(cur)tm.textContent=Math.max(0,Math.floor(((cur.end||now())-cur.start)/1000))},250);
-  S.clean.push(()=>clearInterval(iv));
-  return{stop(){clearInterval(iv)},paint(st){
+  const stop=()=>{clearInterval(iv);clearTimeout(rt);window.removeEventListener("resize",onR)};
+  S.clean.push(stop);
+  return{stop,paint(st){
     cur=st;$("#tg",el).textContent=st.next>n?"✓":st.next;
     for(let i=1;i<=n;i++){const c=st.found[i],b=btn[i];if(c){if(!b.classList.contains("f")){b.classList.add("f");b.style.background=c}}else{b.classList.remove("f");b.style.background=""}}
     $("#sbd",el).innerHTML=st.score.map(s=>`<span><i class="dot" style="background:${s.color}"></i>${esc(s.label)}: <b>${s.count}</b></span>`).join("");
     tm.textContent=Math.max(0,Math.floor(((st.end||now())-st.start)/1000));
     $("#res",el).innerHTML=st.result?`<div class="res">${st.result}</div>`:"";
+    if(fit&&Math.abs(bd.getBoundingClientRect().top-lastTop)>3)layout();
   }};
 }
 G.find={
